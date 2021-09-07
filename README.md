@@ -1,3 +1,4 @@
 # Jawn.fr
 
-Bare Generator by @jjjreisss
+mint page pa la gente. 
+  
