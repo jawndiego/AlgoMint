@@ -5,19 +5,26 @@ import React, {  Suspense, useState, useRef } from 'react'
 import { Canvas, useFrame, createPortal } from '@react-three/fiber'
 import { useGLTF, Stage, Sky, useFBO, OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import {CenterModel, MirrorModel, StaticModel} from './models'
-import { withRouter } from 'next/router'
 
-const [ randomCenterObject, randomLeftObject, randomMirrorObject, randomRightObject ]
+const [ centerObjectRaw, leftObjectRaw, mirrorObjectRaw, rightObjectRaw ]
   = [centerObjects, leftObjects, mirrorObjects, rightObjects].map(objectList => {
-  const randomIndex = Math.floor(Math.random() * objectList.length);
-  return objectList[randomIndex];;
+  const chooseObject = (objects) => {
+    const randomIndex = Math.floor(Math.random() * objects.length);
+    return objects[randomIndex];
+  }
+
+  const object = chooseObject(objectList);
+  useGLTF.preload(`./about-pictures/${object.pathname}.glb`)
+  console.log(object);
+  return object;
 })
 
 const hydrateObject = (object) => {
   const {materialName, pathname, position, rotation, scale} = object;
-  const { scene, nodes, materials } = useGLTF(`./about-pictures/${pathname}.glb`)
+  const { scene, nodes, materials } = useGLTF(`./about-pictures/${pathname}.glb`, false, false)
 
   const material = materials[materialName];
+    console.log(object);
   const geometry = nodes[pathname].geometry;
 
   return {
@@ -73,27 +80,28 @@ function Lights() {
   )
 }
 
-function LoadingText({ modelNames }) {
+function LoadingText() {
   const textOptions = {
     font: new THREE.FontLoader().parse(Roboto),
-    size: .3,
+    size: .2,
     height: .12
   };
 
   return (
     <mesh>
-      <textGeometry attach='geometry' args={[`${modelNames.center}\n${modelNames.left}\n${modelNames.right}\n${modelNames.mirror}`, textOptions]} />
+      <textGeometry attach='geometry' args={[`${centerObjectRaw.pathname}\n${leftObjectRaw.pathname}\n${rightObjectRaw.pathname}\n${mirrorObjectRaw.pathname}`, textOptions]} />
+
       <meshStandardMaterial attach='material' />
     </mesh>
   );
 }
 
-const Models = ({ modelsPlain }) => {
-  const { centerObjectPlain, leftObjectPlain, rightObjectPlain, mirrorObjectPlain } = modelsPlain;
-
+const Models = () => {
   const [ centerObject, leftObject, mirrorObject, rightObject ]
-  = [centerObjectPlain, leftObjectPlain, mirrorObjectPlain, rightObjectPlain].map(hydrateObject);
+    = [centerObjectRaw, leftObjectRaw, mirrorObjectRaw, rightObjectRaw].map(hydrateObject);
+    
 
+ 
   return (
     <>
       <MagicMirror position={[-13, 3.5, 0]} rotation={[0, 0, 0]}>
@@ -108,26 +116,16 @@ const Models = ({ modelsPlain }) => {
   )
 }
 
-export function FrontArt({ router }) {
-  const { query } = router;
+export function FrontArt() {
   const controls = useRef()
-
-  let centerObjectPlain, leftObjectPlain, rightObjectPlain, mirrorObjectPlain;
-
-  centerObjectPlain = query.center ? centerObjects.filter(object => object.name === query.center)[0] : randomCenterObject;
-  leftObjectPlain = query.left ? leftObjects.filter(object => object.name === query.left)[0]: randomLeftObject;
-  rightObjectPlain = query.right ? rightObjects.filter(object => object.name === query.right)[0]: randomRightObject;
-  mirrorObjectPlain = query.mirror ? mirrorObjects.filter(object => object.name === query.mirror)[0]: randomMirrorObject;
-
+  
   return (
     <div className="front-page_wrapper">
-    <Canvas dpr={(1,2)} camera={{ position: [0, 4, 8], fov: 44.5 }} gl={{ alpha: false }}>
+    <Canvas dpr={(1,2)} camera={{ position: [0, 4, 8], fov: 47 }} gl={{ alpha: false }}>
       <Lights />
-      <Suspense fallback={
-        <LoadingText modelNames={{ center: centerObjectPlain.name, left: leftObjectPlain.name, right: rightObjectPlain.name, mirror: mirrorObjectPlain.name }} />
-      }>
+      <Suspense fallback={<LoadingText />}>
         <Stage controls={controls}>
-          <Models modelsPlain={{ centerObjectPlain, leftObjectPlain, mirrorObjectPlain, rightObjectPlain }} />
+          <Models />
         </Stage>
       </Suspense>
       <OrbitControls ref={controls} />
@@ -136,4 +134,4 @@ export function FrontArt({ router }) {
   )
 }
 
-export default withRouter(FrontArt)
+export default FrontArt
